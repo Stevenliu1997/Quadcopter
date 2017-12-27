@@ -97,7 +97,9 @@ void ANO_DT_Data_Exchange(void)
     {
         f.send_motopwm = 0;
         // void ANO_DT_Send_MotoPWM(u16 m_1,u16 m_2,u16 m_3,u16 m_4,u16 m_5,u16 m_6,u16 m_7,u16 m_8);
-        ANO_DT_Send_MotoPWM(motor_pwm_1, motor_pwm_2, motor_pwm_3, motor_pwm_4, 5,6,7,8);
+        // ANO_DT_Send_MotoPWM(motor_pwm_1, motor_pwm_2, motor_pwm_3, motor_pwm_4, 5,6,7,8);
+        extern float q0, q1, q2, q3;
+        ANO_DT_Send_MotoPWM((q0+1.000001f)*5000, (q1+1.000001f)*5000, (q2+1.000001f)*5000, (q3+1.000001f)*5000, 5,6,7,8);
     }
 /////////////////////////////////////////////////////////////////////////////////////
     else if(f.send_power)
