@@ -1111,6 +1111,11 @@
               <FileType>1</FileType>
               <FilePath>.\application\Attitude.c</FilePath>
             </File>
+            <File>
+              <FileName>gpio_hmc5883.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\application\gpio_hmc5883.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

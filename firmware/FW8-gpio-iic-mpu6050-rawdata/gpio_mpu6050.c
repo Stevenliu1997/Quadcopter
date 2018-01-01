@@ -11,8 +11,13 @@
 
 /* 加速度 角速度 循环均值滤波后的值 循环次数 为宏定义correct_num */
 /* 量程见init的量程设置以及相关函数 */
-int ax_cc, ay_cc, az_cc;
-int gx_cc, gy_cc, gz_cc;
+float ax_cc, ay_cc, az_cc;
+float gx_cc, gy_cc, gz_cc;
+float ax_off, ay_off, az_off;
+float gx_off, gy_off, gz_off;
+float ax_buf, ay_buf, az_buf;
+float gx_buf, gy_buf, gz_buf;
+
 #define correct_num 10
 
 
@@ -405,8 +410,11 @@ uint8_t MPU_Init(void)
     MPU_Write_Byte(MPU_INT_EN_REG, 0X00);     /* 关闭所有中断 */
     MPU_Write_Byte(MPU_USER_CTRL_REG, 0X00);  /* I2C主模式关闭 */
     MPU_Write_Byte(MPU_FIFO_EN_REG, 0X00);    /* 关闭FIFO */
-    MPU_Write_Byte(MPU_INTBP_CFG_REG, 0X80);  /* INT引脚低电平有效 */
-
+   // MPU_Write_Byte(MPU_INTBP_CFG_REG, 0X80);  /* INT引脚低电平有效 */  
+	MPU_Write_Byte(MPU_INTBP_CFG_REG , 0x82);     
+	
+	
+	
     /* 检查器件ID */ // 为什么在这里
     if (MPU_Read_Byte(MPU_DEVICE_ID_REG) != MPU_ADDR)
         return 1; /* 器件ID不正确，直接返回 */
@@ -425,6 +433,53 @@ uint8_t MPU_Init(void)
 */
 void acc_correct() {
     
+	unsigned char i=0;
+	unsigned char numAcc=200;    
+  short ax_w[1], ay_w[1], az_w[1];
+	
+	int Angleaccx=0;
+	int Angleaccy=0;
+	int Angleaccz=0;							  
+
+	for(i=0;i<numAcc;i++)
+	{		
+    MPU_Get_Accelerometer(ax_w, ay_w, az_w);
+		Angleaccx+=ax_w[0];
+		Angleaccy+=ay_w[0];
+		Angleaccz+=az_w[0];    
+		delay(2);
+	}	
+
+    ax_off = Angleaccx/numAcc;
+    ay_off = Angleaccy/numAcc;
+    az_off = Angleaccz/numAcc;
+}
+
+void gyro_correct(){
+	unsigned char i=0;
+	unsigned char numGyro=200;
+   short gx_w[1], gy_w[1], gz_w[1];
+	int Gyrox=0;
+	int Gyroy=0;
+	int Gyroz=0;							
+
+	for(i=0;i<numGyro;i++)
+	{
+    MPU_Get_Gyroscope(gx_w, gy_w, gz_w);
+		Gyrox+= gx_w[0];
+		Gyroy+= gy_w[0];
+		Gyroz+= gz_w[0];
+		delay(2);
+	}	
+
+    gx_off = Gyrox/numGyro;
+    gy_off = Gyroy/numGyro;
+    gz_off = Gyroz/numGyro;
+}
+
+
+void acc_get() {
+ /*   
 #ifdef mean_fliter
     int ax_c = 0, ay_c = 0, az_c = 0; // 忘记初始化了，下面也是，哭
     for (int i=0; i<=cn; i++) {
@@ -447,13 +502,22 @@ void acc_correct() {
     az_c+=az_w[wid];
     if (++wid == cn) wid = 0;
 #endif
-    ax_cc = ax_c/cn;
-    ay_cc = ay_c/cn;
-    az_cc = az_c/cn;
+    ax_buf = ax_c/cn;
+    ay_buf = ay_c/cn;
+    az_buf = az_c/cn; 
+*/
+ 
+  short ax_w[1], ay_w[1], az_w[1];
+	
+    MPU_Get_Accelerometer(ax_w, ay_w, az_w);
+ 
+    ax_buf  =  ax_w[0];
+    ay_buf  =  ay_w[0];
+    az_buf  =  az_w[0];
 }
 
-void gyro_correct(){
-
+void gyro_get(){
+/*
 #ifdef mean_fliter
     int gx_c = 0, gy_c = 0, gz_c = 0;
     for (int i=0; i<=cn; i++) {
@@ -476,9 +540,17 @@ void gyro_correct(){
     gz_c+=gz_w[wid];
     if (++wid == cn) wid = 0;
 #endif
-    gx_cc = gx_c/cn;
-    gy_cc = gy_c/cn;
-    gz_cc = gz_c/cn;
+    gx_buf = gx_c/cn;
+    gy_buf = gy_c/cn;
+    gz_buf = gz_c/cn;
+*/
+  short gx_w[1], gy_w[1], gz_w[1];
+	
+      MPU_Get_Gyroscope(gx_w, gy_w, gz_w);   
+ 
+    gx_buf  =  gx_w[0];
+    gy_buf  =  gy_w[0];
+    gz_buf  =  gz_w[0];
 }
 
 #undef cn

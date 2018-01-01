@@ -38,11 +38,11 @@ int main(void)
         gyro_correct();
 
         printf("%d\r\n", c);
-        printf("\tax_c = %d \r\n", ax_cc);
-        printf("\tay_c = %d \r\n", ay_cc);
-        printf("\taz_c = %d \r\n", az_cc);
-        printf("\tgx_c = %d \r\n", gx_cc);
-        printf("\tgy_c = %d \r\n", gy_cc);
-        printf("\tgz_c = %d \r\n", gz_cc);
+        printf("\tax_c = %f \r\n", ax_cc);
+        printf("\tay_c = %f \r\n", ay_cc);
+        printf("\taz_c = %f \r\n", az_cc);
+        printf("\tgx_c = %f \r\n", gx_cc);
+        printf("\tgy_c = %f \r\n", gy_cc);
+        printf("\tgz_c = %f \r\n", gz_cc);
     }
 }
