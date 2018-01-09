@@ -3,6 +3,8 @@ author: [tjua](https://github.com/xxyyttxx), [daisenryaku](https://github.com/da
 ## 项目介绍
 一个基于stm32f411re以及ST标准库的四轴飞行器实现。
 
+![户外试飞](https://user-images.githubusercontent.com/25104011/34729050-9a0a52fc-f596-11e7-8c46-853ce6b2ecd9.jpg)
+
 ## 开发环境搭建
 
 见[wiki介绍](https://github.com/UESTC404/Quadcopter/wiki/1.1-%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA)。
