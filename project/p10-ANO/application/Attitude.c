@@ -1,65 +1,70 @@
-#include <math.h>
+
+#include "inv_mpu.h"
+#include "gpio_hmc5883.h"
 #include "Attitude.h"
+#include "math.h"
 
-#define AtR 0.0174533f
-#define RtA 57.2956f
-
-float kp = 100.0f;               // 比例增益支配率收敛到加速度
-float ki = 0.1f;                 // 陀螺仪积分增益支配率
-float halfT = 0.01f;             // 采样周期一半
-
-float q0 = 1, q1 = 0, q2 = 0, q3 = 0;   //四元数
-float exInt = 0, eyInt = 0, ezInt = 0;  // 比例缩小积分误差
+// #define nihetuoqiu
+/* extern variables ---------------------------------------------------- */
+#define cn 10
+#define deg2rad(d) ((float)(d)/180.f*3.1415926f)
+#define rad2deg(r) ((float)(r)/3.1415926f*180.f)
+short gyro[3], accel[3], mag[3];        //九轴原始数据
+short mag_mid[3] = {80, -379, 55};      //陀螺仪水平旋转校准数据 (特定系统)
 float yaw, pitch, roll;                 //姿态角
 
-void Attitude(float gx, float gy, float gz, float ax, float ay, float az)
+void Attitude(void)
 {
+    // 函数内部把六轴原始数据放在全局变量 gyro 以及 accel 中
+    while (mpu_dmp_get_data(&pitch, &roll, &yaw));
 
-    float norm;
-    float vx, vy, vz;
-    float ex, ey, ez;
+    // 获取电子罗盘原始数据，并做校准
+    updateHMC5883(mag);
+#ifndef nihetuoqiu
+    mag[0] -= mag_mid[0];
+    mag[1] -= mag_mid[1];
+    mag[2] -= mag_mid[2];
 
-    //三轴加速度单位化
-    norm = sqrt(ax*ax + ay*ay + az*az);
-    ax = ax / norm;
-    ay = ay / norm;
-    az = az / norm;
+    mag[0] /= 479/5000.f;
+    mag[1] /= 483/5000.f;
+    mag[2] /= 412/5000.f;
 
-    //转化为方向余弦矩阵第三行三个元素
-    vx = 2*(q1*q3 - q0*q2);
-    vy = 2*(q0*q1 + q2*q3);
-    vz = q0*q0 - q1*q1 - q2*q2 + q3*q3;
+    // 用磁力计数据计算YAW角
+    float rad_roll = deg2rad(roll);
+    float cos_roll = cosf(rad_roll);
+    float sin_roll = sinf(rad_roll);
+    float rad_pitch = deg2rad(pitch);
+    float cos_pitch = cosf(rad_pitch);
+    float sin_pitch = sinf(rad_pitch);
+    float sin_absroll = roll > 0 ? sin_roll : -sin_roll;
+    float sin_abspitch = pitch > 0 ? sin_pitch : -sin_pitch;
+    yaw = - rad2deg(
+                atan2f(mag[1]*cos_roll  - mag[2]*sin_roll,
+                       mag[0]*cos_pitch + mag[1]*sin_absroll*sin_abspitch + mag[2]*cos_roll*sin_pitch
+                )
+            ); // -180˚~180˚
+#endif /* nihetuoqiu */
 
-    //向量叉积运算用来修正陀螺仪和加速度之间的误差
-    ex = (ay*vz - az*vy);
-    ey = (az*vx - ax*vz);
-    ez = (ax*vy - ay*vx);
+#if 0
+    // 对陀螺仪数据做滑动窗口滤波
+    static int gx_c, gy_c, gz_c;
+    static short gx_w[cn], gy_w[cn], gz_w[cn];
+    static int wid;
+    gx_c -= gx_w[wid];
+    gy_c -= gy_w[wid];
+    gz_c -= gz_w[wid];
 
-    //积分求误差
-    exInt = exInt + ex*ki;
-    eyInt = eyInt + ey*ki;
-    ezInt = ezInt + ez*ki;
+    gx_w[wid] = gyro[0];
+    gy_w[wid] = gyro[1];
+    gz_w[wid] = gyro[2];
 
-    //修正陀螺仪
-    gx = gx + kp*ex + exInt;
-    gy = gy + kp*ey + eyInt;
-    gz = gz + kp*ez + ezInt; /// short?
+    gx_c += gx_w[wid];
+    gy_c += gy_w[wid];
+    gz_c += gz_w[wid];
 
-    //一阶龙格库塔法更新四元数
-    q0 = q0 + (-q1*gx - q2*gy - q3*gz)*halfT;
-    q1 = q1 + ( q0*gx + q2*gz - q3*gy)*halfT;
-    q2 = q2 + ( q0*gy - q1*gz + q3*gx)*halfT;
-    q3 = q3 + ( q0*gz + q1*gy - q2*gx)*halfT;
-
-    //规范四元数
-    norm = sqrt(q0*q0 + q1*q1 + q2*q2 + q3*q3);
-    q0 = q0 / norm;
-    q1 = q1 / norm;
-    q2 = q2 / norm;
-    q3 = q3 / norm;
-
-    //四元数转欧拉角
-    roll  = asin(-2.f * q1 * q3 + 2.f * q0 * q2)* RtA;
-    pitch = atan2(2.f *(q2*q3 + q0*q1),q0*q0-q1*q1-q2*q2+q3*q3)* RtA;
-    yaw   = atan2(2.f *(q1*q2 + q0*q3),q0*q0+q1*q1-q2*q2-q3*q3)* RtA;
+    if (++wid == cn) wid = 0;
+    gyro[0] = gx_c/cn;
+    gyro[1] = gy_c/cn;
+    gyro[2] = gz_c/cn;
+#endif
 }
